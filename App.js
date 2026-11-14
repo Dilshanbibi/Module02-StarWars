@@ -4,25 +4,37 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
+  Button,
+  Modal,
+  Pressable,
   FlatList,
   ActivityIndicator,
   StyleSheet,
   Platform,
 } from 'react-native';
+
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+
 import {
   SafeAreaProvider,
   SafeAreaView,
 } from 'react-native-safe-area-context';
 
-// Reusable component for fetching and displaying API data
+// Reusable component for each Star Wars screen
 function StarWarsList({ title, endpoint, labelField }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Search input and modal state
+  const [searchText, setSearchText] = useState('');
+  const [submittedText, setSubmittedText] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+
+  // Fetch Star Wars data from the API
   useEffect(() => {
     let active = true;
 
@@ -33,7 +45,7 @@ function StarWarsList({ title, endpoint, labelField }) {
         );
 
         if (!response.ok) {
-          throw new Error('Unable to load Star Wars data');
+          throw new Error('Failed to fetch data');
         }
 
         const data = await response.json();
@@ -43,7 +55,7 @@ function StarWarsList({ title, endpoint, labelField }) {
         }
       } catch (err) {
         if (active) {
-          setError('Failed to load data. Please try again.');
+          setError('Unable to load Star Wars data.');
         }
       } finally {
         if (active) {
@@ -59,10 +71,31 @@ function StarWarsList({ title, endpoint, labelField }) {
     };
   }, [endpoint]);
 
+  // Display the entered text in a modal
+  function handleSearch() {
+    setSubmittedText(searchText);
+    setModalVisible(true);
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <Text style={styles.title}>{title}</Text>
 
+      {/* Search input at the top of the screen */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder={`Search ${title}...`}
+          value={searchText}
+          onChangeText={setSearchText}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
+        />
+
+        <Button title="Search" onPress={handleSearch} />
+      </View>
+
+      {/* Existing API list */}
       {loading ? (
         <ActivityIndicator size="large" color="#333" />
       ) : error ? (
@@ -81,11 +114,36 @@ function StarWarsList({ title, endpoint, labelField }) {
           contentContainerStyle={styles.list}
         />
       )}
+
+      {/* Modal displays the submitted search text */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Search Result</Text>
+
+            <Text style={styles.modalText}>
+              You entered: {submittedText}
+            </Text>
+
+            <Pressable
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-// Three screens using the reusable list component
+// Three screens from the previous assignments
 function PlanetsScreen() {
   return (
     <StarWarsList
@@ -119,7 +177,7 @@ function SpaceshipsScreen() {
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
-// iOS uses bottom tab navigation
+// iOS bottom tab navigation
 function IosNavigation() {
   return (
     <Tab.Navigator>
@@ -133,7 +191,7 @@ function IosNavigation() {
   );
 }
 
-// Android uses drawer navigation
+// Android drawer navigation
 function AndroidNavigation() {
   return (
     <Drawer.Navigator initialRouteName="Planets">
@@ -147,6 +205,7 @@ function AndroidNavigation() {
   );
 }
 
+// Main application
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -172,6 +231,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 20,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 15,
+  },
+  searchInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#999',
+    borderRadius: 8,
+    padding: 12,
+    marginRight: 10,
+    fontSize: 16,
+  },
   list: {
     paddingHorizontal: 16,
     paddingBottom: 20,
@@ -190,5 +264,39 @@ const styles = StyleSheet.create({
     color: 'red',
     textAlign: 'center',
     margin: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#ffffff',
+    padding: 25,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  modalText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  closeButton: {
+    backgroundColor: '#333333',
+    paddingVertical: 12,
+    paddingHorizontal: 35,
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
